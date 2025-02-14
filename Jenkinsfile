@@ -14,7 +14,7 @@ pipeline {
                     git branch: 'main', url: 'https://github.com/pooja1923/FlaskApp-Docker.git'
                 }
             }
-        
+        }
 
         stage('Build Docker Image') {
             steps {
