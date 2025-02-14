@@ -27,7 +27,7 @@ pipeline {
             steps {
                 script {
                     // Start the Flask app in a Docker container
-                    bat "docker run --rm -d -p 8000:8000 --name flask_test %DOCKER_IMAGE_NAME%:%DOCKER_IMAGE_TAG%"
+                    bat "docker run --rm -d -p 5000:5000 --name flask_test %DOCKER_IMAGE_NAME%:%DOCKER_IMAGE_TAG%"
                     
                     // Wait for the server to start
                     sleep(time: 10, unit: 'SECONDS')
@@ -64,7 +64,7 @@ pipeline {
                     docker stop flask-calculator || exit 0
                     docker rm flask-calculator || exit 0
                     docker pull %DOCKER_IMAGE_NAME%:%DOCKER_IMAGE_TAG%
-                    docker run -d -p 8000:8000 --name flask-calculator %DOCKER_IMAGE_NAME%:%DOCKER_IMAGE_TAG%
+                    docker run -d -p 5000:5000 --name flask-calculator %DOCKER_IMAGE_NAME%:%DOCKER_IMAGE_TAG%
                     '''
                 }
             }
