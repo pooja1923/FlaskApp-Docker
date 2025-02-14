@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:8000"
 
 def test_add():
     response = requests.get(f"{BASE_URL}/add?a=10&b=5")
