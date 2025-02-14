@@ -1,10 +1,10 @@
 pipeline {
-    agent any
+    agent { label 'windows' } // Use a Windows agent for the pipeline
 
     environment {
         // Set environment variables (e.g., Docker Hub credentials)
         DOCKER_HUB_USERNAME = 'poojak19'
-        DOCKER_HUB_PASSWORD = credentials('docker-hub-credentials')  
+        DOCKER_HUB_PASSWORD = credentials('docker-hub-credentials')  // Jenkins credentials
         IMAGE_NAME = 'flask-calculator'
         DOCKER_REGISTRY = 'docker.io'
     }
@@ -13,15 +13,15 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 // Pull the latest code from GitHub
-               git branch: 'main', url: 'https://github.com/pooja1923/FlaskApp-Docker.git'
+                git branch: 'main', url: 'https://github.com/pooja1923/FlaskApp-Docker.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image
-                    docker.build("${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest")
+                    // Build the Docker image using Windows-compatible commands
+                    bat "docker build -t ${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest ."
                 }
             }
         }
@@ -29,10 +29,10 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Run tests inside a Docker container
-                    docker.image("${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest").inside {
-                        sh 'pytest tests/test_app.py'
-                    }
+                    // Run tests inside the Docker container on Windows
+                    bat """
+                    docker run --rm -v %CD%:/app -w /app ${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest powershell -Command "pytest tests/test_app.py"
+                    """
                 }
             }
         }
@@ -44,11 +44,11 @@ pipeline {
             }
             steps {
                 script {
-                    // Log in to Docker Hub
-                    docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_HUB_USERNAME}") {
-                        // Push the image to Docker Hub
-                        docker.image("${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest").push()
-                    }
+                    // Log in to Docker Hub on Windows
+                    bat """
+                    docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}
+                    docker push ${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest
+                    """
                 }
             }
         }
@@ -57,7 +57,7 @@ pipeline {
     post {
         always {
             // Clean up Docker images after the pipeline is finished
-            sh 'docker system prune -f'
+            bat 'docker system prune -f'
         }
 
         success {
