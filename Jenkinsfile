@@ -42,16 +42,14 @@ pipeline {
                 }
             }
             steps {
-                script {
-                    // Log in to Docker Hub
-                    bat "docker login -u ${DOCKER_HUB_CREDENTIALS_USR} -p ${DOCKER_HUB_CREDENTIALS_PSW}"
-
-                    // Push Docker image to Docker Hub
-                    bat "docker push ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+               script {
+                    withDockerRegistry([credentialsId: DOCKER_CREDENTIALS_ID, url: 'https://index.docker.io/v1/']) {
+                        bat 'docker push %IMAGE_NAME%:%DOCKER_TAG%'
+                    }
                 }
             }
         }
-    }
+    
 
     post {
         success {
