@@ -43,8 +43,8 @@ pipeline {
             }
             steps {
                script {
-                    withDockerRegistry([credentialsId: DOCKER_CREDENTIALS_ID, url: 'https://index.docker.io/v1/']) {
-                        bat 'docker push %IMAGE_NAME%:%DOCKER_TAG%'
+                    withDockerRegistry([credentialsId:  DOCKER_HUB_CREDENTIALS, url: 'https://index.docker.io/v1/']) {
+                        bat 'docker push %DOCKER_IMAGE_NAME%:%DOCKER_IMAGE_TAG%'
                     }
                 }
             }
