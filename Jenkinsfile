@@ -14,15 +14,6 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    // Build Docker image
-                    bat "docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ."
-                }
-            }
-        }
-
         stage('Run Tests') {
             steps {
                 script {
@@ -30,6 +21,18 @@ pipeline {
                     sleep 10 // Wait for the server to start
                     bat "pytest tests/"
                     bat "docker stop flask_test"
+                }
+            }
+        }
+
+         stage('Build Docker Image') {
+             when {
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
+            steps {
+                script {
+                    // Build Docker image
+                    bat "docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ."
                 }
             }
         }
