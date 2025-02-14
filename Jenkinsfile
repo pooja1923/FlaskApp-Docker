@@ -57,6 +57,18 @@ pipeline {
                 }
             }
         }
+        stage('Deploy Application') {
+            steps {
+                script {
+                    bat '''
+                    docker stop flask-calculator || exit 0
+                    docker rm flask-calculator || exit 0
+                    docker pull %DOCKER_IMAGE_NAME%:%DOCKER_IMAGE_TAG%
+                    docker run -d -p 5000:5000 --name flask-calculator %DOCKER_IMAGE_NAME%:%DOCKER_IMAGE_TAG%
+                    '''
+                }
+            }
+        }
     }
 
     post {
