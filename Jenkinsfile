@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'windows' } // Use a Windows agent for the pipeline
+    agent any
 
     environment {
         // Set environment variables (e.g., Docker Hub credentials)
