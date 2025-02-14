@@ -1,26 +1,27 @@
 pipeline {
     agent any
-    
+
     environment {
-        DOCKER_IMAGE = 'poojak19/flask-calculator'
-        DOCKER_TAG = 'latest'
+        // Set environment variables (e.g., Docker Hub credentials)
+        DOCKER_HUB_USERNAME = 'poojak19'
+        DOCKER_HUB_PASSWORD = credentials('docker-hub-credentials')  
+        IMAGE_NAME = 'flask-calculator'
+        DOCKER_REGISTRY = 'docker.io'
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                script {
-                    echo 'Checking out the code from the Git repository'
-                    git branch: 'main', url: 'https://github.com/pooja1923/FlaskApp-Docker.git'
-                }
+                // Pull the latest code from GitHub
+               git branch: 'main', url: 'https://github.com/pooja1923/FlaskApp-Docker.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo 'Building the Docker image...'
-                    bat "docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% ."
+                    // Build the Docker image
+                    docker.build("${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest")
                 }
             }
         }
@@ -28,52 +29,43 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    echo 'Running tests in Docker container...'
-                    bat "docker run --rm -d -p 5000:5000 --name flask_test %DOCKER_IMAGE%:%DOCKER_TAG%"
-                    sleep 10 // Wait for the server to start
-                    bat "pytest tests/"
-                    bat "docker stop flask_test"
+                    // Run tests inside a Docker container
+                    docker.image("${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest").inside {
+                        sh 'pytest tests/test_app.py'
+                    }
                 }
             }
         }
 
         stage('Push Image to Docker Hub') {
             when {
-                branch 'main'
+                // Only push the image if tests pass
+                branch 'main'  // Adjust the branch if necessary
             }
             steps {
                 script {
-                    echo 'Pushing the image to Docker Hub...'
-                    withDockerRegistry([credentialsId: 'docker-hub-credentials', url: 'https://index.docker.io/v1/']) {
-                        bat "docker push %DOCKER_IMAGE%:%DOCKER_TAG%"
+                    // Log in to Docker Hub
+                    docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_HUB_USERNAME}") {
+                        // Push the image to Docker Hub
+                        docker.image("${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest").push()
                     }
-                }
-            }
-        }
-
-        stage('Deploy Application') {
-            steps {
-                script {
-                    echo 'Deploying the application...'
-                    bat '''
-                    docker stop flask_calculator || exit 0
-                    docker rm flask_calculator || exit 0
-                    docker pull %DOCKER_IMAGE%:%DOCKER_TAG%
-                    docker run -d -p 5000:5000 --name flask_calculator %DOCKER_IMAGE%:%DOCKER_TAG%
-                    '''
                 }
             }
         }
     }
 
     post {
-        failure {
-            echo "Build failed!"
-            currentBuild.result = 'FAILURE'
+        always {
+            // Clean up Docker images after the pipeline is finished
+            sh 'docker system prune -f'
         }
 
         success {
-            echo "Build and deployment successful!"
+            echo 'Pipeline executed successfully!'
+        }
+
+        failure {
+            echo 'Pipeline failed. Check the logs for details.'
         }
     }
 }
