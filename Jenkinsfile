@@ -2,17 +2,14 @@ pipeline {
     agent any
 
     environment {
-        // Set environment variables (e.g., Docker Hub credentials)
-        DOCKER_HUB_USERNAME = 'poojak19'
-        DOCKER_HUB_PASSWORD = credentials('docker-hub-credentials')  // Jenkins credentials
-        IMAGE_NAME = 'flask-calculator'
-        DOCKER_REGISTRY = 'docker.io'
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') // Docker Hub credentials
+        DOCKER_IMAGE_NAME = 'poojak19/flask-calculator' // Docker image name
+        DOCKER_IMAGE_TAG = 'latest' // Docker image tag
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                // Pull the latest code from GitHub
                 git branch: 'main', url: 'https://github.com/pooja1923/FlaskApp-Docker.git'
             }
         }
@@ -20,8 +17,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image using Windows-compatible commands
-                    bat "docker build -t ${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest ."
+                    // Build Docker image
+                    bat "docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ."
                 }
             }
         }
@@ -29,43 +26,37 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Run tests inside the Docker container on Windows
-                    bat """
-                    docker run --rm -v %CD%:/app -w /app ${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest powershell -Command "pytest tests/test_app.py"
-                    """
+                    // Run tests inside the Docker container
+                    bat "docker run --rm ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} python -m pytest tests/"
                 }
             }
         }
 
         stage('Push Image to Docker Hub') {
             when {
-                // Only push the image if tests pass
-                branch 'main'  // Adjust the branch if necessary
+                expression {
+                    // Only execute this stage if the previous stage (Run Tests) succeeded
+                    currentBuild.result == null || currentBuild.result == 'SUCCESS'
+                }
             }
             steps {
                 script {
-                    // Log in to Docker Hub on Windows
-                    bat """
-                    docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}
-                    docker push ${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest
-                    """
+                    // Log in to Docker Hub
+                    bat "docker login -u ${DOCKER_HUB_CREDENTIALS_USR} -p ${DOCKER_HUB_CREDENTIALS_PSW}"
+
+                    // Push Docker image to Docker Hub
+                    bat "docker push ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                 }
             }
         }
     }
 
     post {
-        always {
-            // Clean up Docker images after the pipeline is finished
-            bat 'docker system prune -f'
-        }
-
         success {
-            echo 'Pipeline executed successfully!'
+            echo 'Pipeline completed successfully!'
         }
-
         failure {
-            echo 'Pipeline failed. Check the logs for details.'
+            echo 'Pipeline failed!'
         }
     }
 }
