@@ -26,8 +26,10 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Run tests inside the Docker container
-                    bat "docker run --rm ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} python -m pytest tests/"
+                    bat "docker run --rm -d -p 5000:5000 --name flask_test %DOCKER_IMAGE_NAME%:%DOCKER_IMAGE_TAG%"
+                    sleep 10 // Wait for the server to start
+                    bat "pytest tests/"
+                    bat "docker stop flask_test"
                 }
             }
         }
